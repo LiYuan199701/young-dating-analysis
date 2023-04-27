@@ -1,0 +1,153 @@
+---
+title: "Dating Research"
+author: "Léon Yuan"
+format: pdf
+editor: visual
+highlight-style: oblivion
+code-line-numbers: true
+toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(prompt = TRUE)
+```
+
+# Import data
+
+```{r}
+#| warning: false
+library(tidyverse)
+library(kableExtra)
+Speed_Dating_Data <- read_csv("./data/Speed Dating Data.csv")
+head(Speed_Dating_Data) |>
+  kable(booktabs = TRUE,
+      caption = "Speed Dating Data") |>
+  kable_styling(latex_options="striped")
+```
+
+# Explore data analysis
+
+## match and same race
+
+From the below bar chart, I
+
+```{r}
+# Define race and match table
+race <- Speed_Dating_Data |>
+  count(match, samerace) |> 
+  mutate(match = ifelse(match == 0, "mismatch", "match"),
+         samerace = ifelse(samerace == 0, "different race", "same race"))
+# Plot bar chart for race and match
+race |>
+  ggplot(aes(x = samerace, y = n, fill = match)) +
+  geom_bar(position="dodge", stat="identity")
+```
+
+```{r}
+race_table <- data.frame(
+  same.race = c(566, 2750, as.integer(566/(566+2750)*100)), 
+  different.race = c(814, 4248, as.integer(814/(814+4248)*100)),
+  Row.Prop = c(as.integer(566/(566+814)*100), 
+               as.integer(2750/(2750+4248)*100), NA))
+rownames(race_table) <- c("match", "mismatch", "Column Prop")
+race_table |>
+  kable(booktabs = TRUE,
+      caption = "Race and Match Table") |>
+  kable_styling(latex_options="striped")
+```
+
+### Conduct a Chi-Sqaure test for independent test:
+
+```{r}
+M <- as.table(rbind(c(566, 814), c(2750, 4248)))
+dimnames(M) <- list(M = c("Match", "Mismatch"),
+                    R = c("Same Race", "Different Race"))
+chisq.test(M)
+```
+
+### Conduct a Fisher's Exact test for independent test:
+
+```{r}
+M <- as.table(rbind(c(566, 814), c(2750, 4248)))
+dimnames(M) <- list(M = c("Match", "Mismatch"),
+                    R = c("Same Race", "Different Race"))
+fisher.test(M)
+```
+
+From these two tests, the p-value is about 0.2 which is larger than any significant level, I failed to reject the null hypothesis, thus overall there is no relationship between race and match. However, this is an overall conclusion for all gender and races which may be misleading to ignore gender difference. Next I will investigate further for race and match between male and female.
+
+## Is female racial preference the same as male's?
+
+First I visualize the difference by gender as following:
+
+```{r}
+library(scales)
+Speed_Dating_Data |>
+  mutate(part_gender = ifelse(gender == 0, 1, 0)) |>
+  count(part_gender, dec_o, samerace) |>
+  mutate(part_gender = ifelse(part_gender == 0, "Female", "Male"),
+         dec_o = ifelse(dec_o == 0, "No", "Yes"),
+         samerace = ifelse(samerace == 0, "Same Race", "Different Race")) |>
+  group_by(part_gender, samerace) |>
+  mutate(prop = n / sum(n)) |>
+  ggplot(aes(x = samerace, y = n, fill = dec_o, 
+             label = percent(prop, accuracy = 0.1))) +
+  geom_bar(position="dodge", stat="identity") +
+  geom_text(position = position_dodge(width = .9),    # move to center of bars
+              vjust = -0.5,    # nudge above top of bar
+              size = 3) + 
+  facet_wrap(~part_gender)
+```
+
+Then I am going to conduct a Mantel-Haenszel chi-squared test as following: First I build an array for this test:
+
+```{r}
+column.names <- c("Same Race", "Difference Race")
+row.names <- c("Yes", "No")
+matrix.names <- c("Femal", "Male")
+gds <- array(data = c(877,1659,652,1006,1199,1327,787,871), 
+             dim = c(2,2,2), 
+             dimnames = list(row.names, column.names, matrix.names))
+gds
+```
+
+After conducting this test, then I found that p-value is 0.0321 which is slightly less than 0.05, thus I can tell that the odds ratio is not equal to 1 by gender. Obviously, from the above ggplot graph, female says less "yes" to interracial dating than male does.
+
+```{r}
+mantelhaen.test(gds)
+```
+
+## Difference combination of race and gender in dating preference
+
+From the below graph, we can tell that Asian males are highest rejected when they date all races' female comparing to other male races, especially Asian male is extremely likely to be rejected by white females, which is also the highest rejection rate in all dating combinations.
+
+```{r}
+Speed_Dating_Data |>
+  drop_na(race_o, race) |>
+  mutate(part_gender = ifelse(gender == 0, 1, 0)) |>
+  count(part_gender, race_o, race, dec_o) |>
+  mutate(part_gender = ifelse(part_gender == 0, "Female", "Male"),
+         dec_o = ifelse(dec_o == 0, "No", "Yes"),
+         race_o = case_when(race_o == 1 ~ "Black",
+                            race_o == 2 ~ "White",
+                            race_o == 3 ~ "Latino/Hispanic",
+                            race_o == 4 ~ "Asian",
+                            race_o == 5 ~ "Native American",
+                            race_o == 6 ~ "Other"),
+         race = case_when(  race == 1 ~ "Black",
+                            race == 2 ~ "White",
+                            race == 3 ~ "Latino/Hispanic",
+                            race == 4 ~ "Asian",
+                            race == 5 ~ "Native American",
+                            race == 6 ~ "Other")) |>
+  group_by(part_gender, race_o, race) |>
+  mutate(prop = n / sum(n)) |>
+  ggplot(aes(x = race, y = n, fill = dec_o,
+             label = percent(prop, accuracy = 0.1))) +
+  geom_bar(position="dodge", stat="identity") +
+  geom_text(position = position_dodge(width = .9),    
+              vjust = -0.5,    
+              size = 3) + 
+  facet_grid(cols = vars(part_gender), rows = vars(race_o))
+```
+
