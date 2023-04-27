@@ -1,0 +1,264 @@
+---
+title: "Dating Research"
+author: "Léon Yuan"
+format: pdf
+editor: visual
+highlight-style: oblivion
+code-line-numbers: true
+toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(prompt = TRUE)
+```
+
+# Import data
+
+```{r}
+#| warning: false
+library(tidyverse)
+library(kableExtra)
+Speed_Dating_Data <- read_csv("./data/Speed Dating Data.csv")
+head(Speed_Dating_Data) |>
+  kable(booktabs = TRUE,
+      caption = "Speed Dating Data") |>
+  kable_styling(latex_options="striped")
+```
+
+
+## Conduct logistic regressions separately for male and female
+
+The reason I build two separate models for females and males is because there are some big differences in dating behaviors between genders and separate models are easier to interpreter.
+
+# Decisons made by females to male when dating
+
+```{r}
+# Filter data when females date males
+females_to_males <- Speed_Dating_Data |>
+  filter(gender == 0) |>
+  select(dec_o, samerace, race_o, age_o, attr_o, sinc_o, intel_o, fun_o, amb_o, shar_o,
+         age, race)
+# Convert numerical decision into factor type
+females_to_males$dec_o <- factor(females_to_males$dec_o,
+                                    levels = c(0,1),
+                                    labels = c("No", "Yes"))
+# Make the glm predict the Yes as 1
+contrasts(females_to_males$dec_o)
+females_to_males$samerace <- factor(females_to_males$samerace,
+                                    levels = c(0,1),
+                                    labels = c("no", "yes"))
+contrasts(females_to_males$samerace)
+females_to_males$race <- factor(females_to_males$race,
+                                levels = 1:6,
+                                labels = c("Black","White","Latino","Asian","Native","Other"))
+contrasts(females_to_males$race)
+# delete the missing value rows
+females_to_males <- females_to_males |>
+  drop_na()
+```
+
+## Logistic regression only on race
+
+First I only care about how race affects females' decisions to males, only including the `samerace` and `race` columns in this logistic classification model. From the summary of model, we can tell that all females are likely to reject the `Asian` males because `Asian` males has 0.008 p-value which is the most significant in this model. The log odd of saying "yes" to Asian males by all females is -0.48977 given other variables fixed and this is significant negative coefficient meaning that Asian males are very unpopular when dating. Thus, the odd ratio of say "yes" to Asian males is $e^{-0.48977}=0.6127673$ which means when females date Asian males, they likely decrease 40% probability of saying "yes" to Asian males. Also, `samerace` doesn't show statistical significance because of relatively large p-value 0.06 which is counter intuitive to common sense that females are preferred same race dating.
+
+```{r}
+fit <- glm(data = females_to_males,
+    formula = dec_o ~ samerace+race,
+    family=binomial(link='logit'))
+summary(fit)
+```
+
+Then the `ANOVA` table shows that `race` variable has very small p-value which shows it is very significant as I said before.
+
+```{r}
+anova(fit, test="Chisq")
+```
+
+## Logistic regression includes the race and six attributes
+
+Once I included six attribute scores and race together in the logistic regression model, the significance level of race changes radically, because none of race is significant once six attributes are included. This suggests that males' personal attributes can overturn/change the females' impressions or decisions deeply. As we can see from the p-values, all six attributes are statistically significant, especially physical attractiveness, fun, ambitious, shared interests play major roles in making decisions.
+
+The coefficient of *physical attractiveness* is *0.39356*, this means log odds of saying "yes" to males by females increases *0.39356* givens other variables fixed, and odd ratios of saying "yes" to males by females increases $e^{0.39356}=1.482248$ when one more score is given to *attractiveness*.
+
+The coefficient of *fun* is *0.27850*, this means log odds of saying "yes" to males by females increases *0.27850* givens other variables fixed, and odd ratios of saying "yes" to males by females increases $e^{0.27850}=1.321147$ when one more score is given to *fun*.
+
+The coefficient of *shared interests* is *0.27081*, this means log odds of saying "yes" to males by females increases *0.27081* givens other variables fixed, and odd ratios of saying "yes" to males by females increases $e^{0.27081}=1.311026$ when one more score is given to *shared interests*.
+
+All these three most significant attributes have positive coefficient meaning that more scores on these attributes will help females a lot make "yes" decisions to males.
+
+```{r}
+fit1 <- glm(data = females_to_males,
+    formula = dec_o ~ samerace+race+attr_o+sinc_o+intel_o+fun_o+amb_o+shar_o,
+    family=binomial(link='logit'))
+summary(fit1)
+```
+
+The `ANOVA` table also shows that attractiveness, fun and shared interests explain the most deviance residuals by 710.98, 155.36, 106.23 compared to other variables' explained variations which are consistent with our above finding.
+
+```{r}
+anova(fit1, test="Chisq")
+```
+
+## Random Forests for females' decisions on more variables
+
+```{r}
+# Filter data when females date males with more variables than logistics regression
+tree_females_to_males <- Speed_Dating_Data |>
+  filter(gender == 0) |>
+  select(dec_o, 
+         samerace, 
+         attr_o, sinc_o, intel_o, fun_o, amb_o, shar_o,
+         int_corr, age, race, field, from)
+# Convert numerical decision into factor type
+tree_females_to_males$dec_o <- factor(tree_females_to_males$dec_o,
+                                    levels = c(0,1),
+                                    labels = c("No", "Yes"))
+# Make the glm predict the Yes as 1
+contrasts(tree_females_to_males$dec_o)
+tree_females_to_males$samerace <- factor(tree_females_to_males$samerace,
+                                    levels = c(0,1),
+                                    labels = c("no", "yes"))
+contrasts(tree_females_to_males$samerace)
+tree_females_to_males$race <- factor(tree_females_to_males$race,
+                                levels = 1:6,
+                                labels = c("Black","White","Latino","Asian","Native","Other"))
+contrasts(tree_females_to_males$race)
+# Drop missing rows
+tree_females_to_males <-
+  tree_females_to_males |>
+  drop_na()
+```
+
+Now I checked if the response variable `dec_o` is balanced or not. The ratio of No to Yes is 1.68 which shows relative balanced within the accepted range from 0.5 to 2. Thus, I don't need to make any efforts to balance the dataset.
+
+```{r}
+table(tree_females_to_males$dec_o)
+```
+
+Initially I did want to include `income` variable in the random forest, however, I found there are half of income variables missing, so I have to drop this variable.
+
+```{r}
+sum(is.na(Speed_Dating_Data$income))
+```
+
+## Build random forests model for it
+
+### Load packages
+
+```{r}
+library(randomForest)
+library(datasets)
+library(caret)
+library(pROC)
+library(glmnet)
+```
+
+### Split the data into training and test set
+
+I randomly splited data into 80% training and 20% test set.
+
+```{r}
+set.seed(222)
+ind <- sample(2, nrow(tree_females_to_males), replace = TRUE, prob = c(0.8, 0.2))
+train <- tree_females_to_males[ind==1,]
+test <- tree_females_to_males[ind==2,]
+```
+
+Check how many observations in training and how many in test set. There are 3366 rows in training and 826 in the test set.
+
+```{r}
+dim(train)
+dim(test)
+```
+
+# Construct a random forest model for this training data
+
+I chose 500 trees and 4 random predictors at each split.
+
+```{r}
+rf <- randomForest(x = train[-1],
+                   y = train$dec_o,
+                   xtest = test[-1],
+                   ytest = test$dec_o,
+                   ntree = 500,
+                   mtry = 4,
+                   proximity = TRUE)
+```
+
+Print out the random forests. The OOB estimate of error rate is 24.99% which has 75% accuracy on the training set while on the test set, this RF has roughly 73% test accuracy which is not bad on this dating data.
+
+```{r}
+print(rf)
+```
+
+## Confusion matrix
+
+Print out the confusion matrix and other statistical measures on this classification results. The whole accuracy on the test set is 72.71%. The true "Yes" rate is $138/(138+118) = 53.90%$ which is a little bit over 50% random guess rate. However, the true "No" rate is $347/(347+64)=84.43%$ which is a better prediction rate on the test set because training set has more "No" classes than "Yes".
+
+```{r}
+confusionMatrix(data = rf$test$predicted,
+                reference = test$dec_o)
+```
+
+## Variable Importance
+
+From the variable importance plot, I roughly classify the top 6 predictors into three classes. The first top class only has one predictor, physical attractiveness. This is consistent with my logistic regression. *Physical Attractiveness* has 205.911 mean decrease of Gini that is measurement of building trees. This Gini decrease is almost twice of other variables. Thus, *Physical attractiveness* is the most significant factor when females make decision to males. The second top class has *shared interests* and the correlation between participant's and partner's ratings of interests. These two variables actually are highly correlated however random forest is robust to the highly correlated predictors because of its ability of randomly selecting a subset of variables at each split. *Shared Interests* has 150.324 decrease Gini of mean which is as three times as other less importance variables. Females secondary emphasize shared interests with males. The third top class has three variables: *fun, from, field*. They have very close Gini decrease mean about 125 which is as twice as other less important variables. Females put equally emphasis on the fun, where males are from, and which field males' careers belong to. Overall females are likely to date males who are very physical attractive then have common/shared interests as they do while males' career fields and where they're from play a secondary role in dating.
+
+```{r}
+varImpPlot(rf,
+           sort = T,
+           n.var = 12,
+           main = "Top 12 - Variable Importance")
+importance(rf)
+```
+
+## Receiver Operating Characteristic comparing random forests with logistics regression on the same train and test set
+
+First I built the same random forest model and plot the ROC curve:
+
+```{r}
+# Build a random forest model
+rf <- randomForest(x = train[-1],
+                   y = train$dec_o,
+                   ntree = 500,
+                   mtry = 4,
+                   proximity = TRUE)
+# Make "Yes" as positive classes
+pred_roc <- predict(rf, newdata = test, type = "prob")[,2]
+ROC_rf <- roc(response = test$dec_o,
+              predictor = pred_roc)
+plot(ROC_rf, col = "red", main = "ROC For Random Forest on the test set")
+```
+
+Second I built a Penalized Logistic Regression because there are many predictors, thus selecting and shrinking variables are necessary to build a good logistic regression.
+
+First I encoded train data frame into a form of dummy variables for all categorical variables and I deleted the `from` column because it has 164 unique values which produces huge number of variables and also `field`. Then I use Elastic net with logistics regression on this train matrix with alpha = 0.5. I build a final model with the lambda that gives the simplest model but also lies within one standard error of the optimal lambda selected by cross validation measured by Binomial Deviance. Finally I plot the cross-validation plot when selecting lambda.
+
+```{r}
+set.seed(123) 
+# Encode matrix into dummy variable forms for all categorical variables
+x.train <- model.matrix(dec_o~., train[,-c(12,13)])[,-1]
+# Use Elastic net with logistics regression on this train dataset with alpha = 0.5
+cv.elastic <- cv.glmnet(x = x.train, y = train$dec_o, 
+                      alpha = 0.5, family = "binomial")
+# Build a final model with the best lambda selected by cross validation measured by Binomial Deviance
+best_elastic <- glmnet(x.train, y = train$dec_o, alpha = 0.5, family = "binomial",
+                lambda = cv.elastic$lambda.1se)
+plot(cv.elastic, main = "Cross-Validation to select shrinkega lamda")
+```
+
+Next I make predictions on the test set by this best Elastic net model as following:
+
+```{r}
+x.test <- model.matrix(dec_o ~., test[,-c(12,13)])[,-1]
+prob_elastic <- predict(best_elastic, newx = x.test, type = "response")
+```
+
+From this plot, I can tell that Random Forest and Penalized Logistic Regression perform almost equally while Penalized Logistic regression performs slightly better than Random Forest.
+
+```{r}
+ROC_lr <- roc(response = test$dec_o,
+              predictor = prob_elastic)
+plot(ROC_rf, col = "red", main = "Compare ROC of Random Forest and Penalized Logistic Regression")
+lines(ROC_lr, col = "blue")
+```
