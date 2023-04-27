@@ -117,7 +117,7 @@ After conducting this test, then I found that p-value is 0.0321 which is slightl
 mantelhaen.test(gds)
 ```
 
-## Difference combination of race and gender in dating preference
+## Difference combination of race and gender in dating preference with Data Visualization 
 
 From the below graph, we can tell that Asian males are highest rejected when they date all races' female comparing to other male races, especially Asian male is extremely likely to be rejected by white females, which is also the highest rejection rate in all dating combinations.
 
@@ -149,5 +149,50 @@ Speed_Dating_Data |>
               vjust = -0.5,    
               size = 3) + 
   facet_grid(cols = vars(part_gender), rows = vars(race_o))
+```
+
+## Conduct logistic regressions separately for male and female
+
+The reason I build two separate models for females and males is because there are some big differences in dating behaviors between genders and separate models are easier to interpreter.
+
+# Decisons made by females to male when dating
+
+```{r}
+# Filter data when females date males
+females_to_males <- Speed_Dating_Data |>
+  filter(gender == 1) |>
+  select(dec_o, samerace, race_o, age_o, attr_o, sinc_o, intel_o, fun_o, amb_o, shar_o,
+         age, race)
+# Convert numerical decision into factor type
+females_to_males$dec_o <- factor(females_to_males$dec_o,
+                                    levels = c(0,1),
+                                    labels = c("No", "Yes"))
+# Make the glm predict the Yes as 1
+contrasts(females_to_males$dec_o)
+females_to_males$samerace <- factor(females_to_males$samerace,
+                                    levels = c(0,1),
+                                    labels = c("no", "yes"))
+contrasts(females_to_males$samerace)
+females_to_males$race <- factor(females_to_males$race,
+                                levels = 1:6,
+                                labels = c("Black","White","Latino","Asian","Native","Other"))
+contrasts(females_to_males$race)
+# delete the missing value rows
+females_to_males <- females_to_males |>
+  drop_na()
+```
+
+First I only care about how race affects females' decisions to males, only including the `samerace` and `race` columns in this logistic classification model. From the summary of model, we can tell that all females are likely to reject the `Asian` males because `Asian` males has 0.008 p-value which is the most significant in this model. The log odd of saying "yes" to Asian males by all females is -0.48977 given other variables fixed and this is significant negative coefficient meaning that Asian males are very unpopular when dating. Thus, the odd ratio of say "yes" to Asian males is $e^{-0.48977}=0.6127673$ which means when females date Asian males, they likely decrease 40% probability of saying "yes" to Asian males.
+
+```{r}
+fit <- glm(data = females_to_males,
+    formula = dec_o ~ samerace+race,
+    family=binomial(link='logit'))
+summary(fit)
+```
+
+
+```{r}
+anova(fit, test="Chisq")
 ```
 
