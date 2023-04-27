@@ -182,7 +182,9 @@ females_to_males <- females_to_males |>
   drop_na()
 ```
 
-First I only care about how race affects females' decisions to males, only including the `samerace` and `race` columns in this logistic classification model. From the summary of model, we can tell that all females are likely to reject the `Asian` males because `Asian` males has 0.008 p-value which is the most significant in this model. The log odd of saying "yes" to Asian males by all females is -0.48977 given other variables fixed and this is significant negative coefficient meaning that Asian males are very unpopular when dating. Thus, the odd ratio of say "yes" to Asian males is $e^{-0.48977}=0.6127673$ which means when females date Asian males, they likely decrease 40% probability of saying "yes" to Asian males.
+## Logistic regression only on race
+
+First I only care about how race affects females' decisions to males, only including the `samerace` and `race` columns in this logistic classification model. From the summary of model, we can tell that all females are likely to reject the `Asian` males because `Asian` males has 0.008 p-value which is the most significant in this model. The log odd of saying "yes" to Asian males by all females is -0.48977 given other variables fixed and this is significant negative coefficient meaning that Asian males are very unpopular when dating. Thus, the odd ratio of say "yes" to Asian males is $e^{-0.48977}=0.6127673$ which means when females date Asian males, they likely decrease 40% probability of saying "yes" to Asian males. Also, `samerace` doesn't show statistical significance because of relatively large p-value 0.06 which is counterintuitive to common sense that females are preferred same race dating.
 
 ```{r}
 fit <- glm(data = females_to_males,
@@ -191,8 +193,33 @@ fit <- glm(data = females_to_males,
 summary(fit)
 ```
 
+Then the `ANOVA` table shows that `race` variable has very small p-value which shows it is very significant as I said before.
 
 ```{r}
 anova(fit, test="Chisq")
+```
+
+## Logistic regression includes the race and six attributes 
+
+Once I included six attribute scores and race together in the logistic regression model, the significance level of race changes radically, because none of race is significant once six attributes are included. This suggests that males' personal attributes can overturn/change the females' impressions or decisions deeply. As we can see from the p-values, all six attributes are statistically significant, especially physical attractiveness, fun, ambitious, shared interests play major roles in making decisions. 
+
+The coefficient of *physical attractiveness* is *0.39356*, this means log odds of saying "yes" to males by females increases *0.39356* givens other variables fixed, and odd ratios of saying "yes" to males by females increases $e^{0.39356}=1.482248$ when one more score is given to *attractiveness*.
+
+The coefficient of *fun* is *0.27850*, this means log odds of saying "yes" to males by females increases *0.27850* givens other variables fixed, and odd ratios of saying "yes" to males by females increases $e^{0.27850}=1.321147$ when one more score is given to *fun*.
+
+The coefficient of *shared interests* is *0.27081*, this means log odds of saying "yes" to males by females increases *0.27081* givens other variables fixed, and odd ratios of saying "yes" to males by females increases $e^{0.27081}=1.311026$ when one more score is given to *shared interests*.
+
+All these three most significant attributes have positive coefficient meaning that more scores on these attributes will help females a lot make "yes" decisions to males.
+
+```{r}
+fit1 <- glm(data = females_to_males,
+    formula = dec_o ~ samerace+race+attr_o+sinc_o+intel_o+fun_o+amb_o+shar_o,
+    family=binomial(link='logit'))
+summary(fit1)
+```
+The `ANOVA` table also shows that attractiveness, fun and shared interests explain the most deviance residuals by 710.98, 155.36, 106.23 compared to other variables' explained variations.
+
+```{r}
+anova(fit1, test="Chisq")
 ```
 
