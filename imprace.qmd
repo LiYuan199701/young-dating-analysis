@@ -1,0 +1,47 @@
+---
+title: "imprace"
+author: "Léon"
+format: pdf
+editor: visual
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(prompt = TRUE)
+```
+
+# Import data
+
+```{r}
+#| warning: false
+library(tidyverse)
+library(kableExtra)
+library(lme4)
+Speed_Dating_Data <- read_csv("./data/Speed Dating Data.csv")
+```
+
+# Extract race related dataset
+
+```{r}
+race_dat <- Speed_Dating_Data |>
+  select(gender, race, imprace) |>
+  drop_na()
+race_dat$gender <- factor(race_dat$gender,
+                          levels = c(0,1),
+                          labels = c("Female", "Male"))
+race_dat$race <- factor(race_dat$race,
+                                levels = 1:6,
+                                labels = c("Black","White","Latino","Asian","Native","Other"))
+```
+
+# Build a fixed effect model to predict the importance of the same race dating to a person
+
+```{r}
+fit <- lmer(data = race_dat,
+          formula = imprace ~ (race|gender)  + gender)
+summary(fit)
+```
+
+```{r}
+plot(fit)
+```
+

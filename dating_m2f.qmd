@@ -25,7 +25,6 @@ head(Speed_Dating_Data) |>
   kable_styling(latex_options="striped")
 ```
 
-
 ## Conduct logistic regressions separately for male and female
 
 The reason I build two separate models for females and males is because there are some big differences in dating behaviors between genders and separate models are easier to interpreter.

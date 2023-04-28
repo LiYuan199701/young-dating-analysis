@@ -1,0 +1,45 @@
+---
+title: "Speed Dating Analysis"
+author: "Léon Yuan"
+format: pdf
+editor: visual
+toc: true
+---
+
+# Introduction
+
+## Outline experiment/data collection
+
+## What are you expecting to see (hypotheses)? 
+
+## Importance/intrinsic interest of question addressed
+
+# Design & Data Collection
+
+## How ambitious is the data collection and analysis required for your investigation
+
+## How appropriate/ideal are data for question posed? 
+
+## Clearly defined statistical hypotheses and correct description of how they link to question(s) of interest
+
+## Randomization (if relevant) & scientific rigor used in data collection and described in detail
+
+# Data Analysis
+
+## Appropriate selection of statistical methodology
+
+## Analysis carried out correctly
+
+## Assumptions met? Appropriate remedies if not, or discussion of effects
+
+## Correct and complete interpretation of results
+
+## Proper and effective visualization of data, illuminating findings
+
+# Conclusion
+
+## Concise and accurate summary of findings
+
+## Generalization / Scope of inference
+
+## Thoughtful and realistic discussion of limitations and extensions/future questions
