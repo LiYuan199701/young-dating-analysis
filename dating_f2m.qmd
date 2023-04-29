@@ -28,6 +28,11 @@ head(Speed_Dating_Data) |>
 
 # Explore data analysis
 
+```{r}
+Speed_Dating_Data |>
+  count(gender)
+```
+
 ## match and same race
 
 From the below bar chart, I
