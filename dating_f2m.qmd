@@ -2,6 +2,7 @@
 title: "Dating Research"
 author: "Léon Yuan"
 format: pdf
+page-layout: full
 editor: visual
 highlight-style: oblivion
 code-line-numbers: true
@@ -108,7 +109,10 @@ matrix.names <- c("Femal", "Male")
 gds <- array(data = c(877,1659,652,1006,1199,1327,787,871), 
              dim = c(2,2,2), 
              dimnames = list(row.names, column.names, matrix.names))
-gds
+gds |>
+  kable(booktabs = TRUE,
+      caption = "Race and Match Table") |>
+  kable_styling(latex_options="striped")
 ```
 
 After conducting this test, then I found that p-value is 0.0321 which is slightly less than 0.05, thus I can tell that the odds ratio is not equal to 1 by gender. Obviously, from the above ggplot graph, female says less "yes" to interracial dating than male does.
